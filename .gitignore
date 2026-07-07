@@ -1,0 +1,14 @@
+# Сырьё и технические входы разведки — не нужны дашборду (app.py читает
+# только data/), регенерируются пайплайном локально. Не бэкапятся в GitHub.
+raw/
+magstat/
+other_files/
+test_spreadsheets/
+
+# Локальные dev-инструменты (Claude Code preview), не часть проекта
+.claude/
+
+# Системное
+.DS_Store
+__pycache__/
+*.pyc
