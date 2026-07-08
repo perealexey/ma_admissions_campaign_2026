@@ -91,19 +91,19 @@ PLACE_TYPE_LABELS = {"budget": "Бюджет", "commercial": "Платное"}
 SEARCH_FIELD_LABELS = {"student_id": "Уникальный код поступающего", "reg_number": "Регистрационный номер"}
 
 
+LONG_TABLE_DRIVE_NAME = "admissions_long_latest.parquet"
+
+
 @st.cache_data(ttl=600)
-def load_long_table() -> tuple[pd.DataFrame, str]:
-    """Длинная таблица датирована по срезам (raw-архив сохраняется целиком на
-    Drive) — берём самый свежий файл admissions_long_*.parquet по имени."""
+def load_long_table() -> pd.DataFrame:
+    """Полный архив по датам живёт только локально (data/, raw/) — на Drive
+    (и в дашборде) всегда только самый свежий срез, под фиксированным именем
+    (см. scripts/sync_to_drive.py про то, почему имя фиксированное)."""
     files = list_drive_files()
-    names = sorted(n for n in files if n.startswith("admissions_long_") and n.endswith(".parquet"))
-    if not names:
-        st.error("В папке на Google Drive не найдено ни одного admissions_long_*.parquet")
+    if LONG_TABLE_DRIVE_NAME not in files:
+        st.error(f"На Google Drive не найден {LONG_TABLE_DRIVE_NAME}")
         st.stop()
-    name = names[-1]
-    df = pd.read_parquet(io.BytesIO(download_drive_file(files[name])))
-    snapshot = name.removeprefix("admissions_long_").removesuffix(".parquet")
-    return df, snapshot
+    return pd.read_parquet(io.BytesIO(download_drive_file(files[LONG_TABLE_DRIVE_NAME])))
 
 
 @st.cache_data(ttl=600)
@@ -171,13 +171,16 @@ st.set_page_config(page_title="Приёмная кампания ВШЭ — ма
 if not check_password():
     st.stop()
 
-df, snapshot_from_long_table = load_long_table()
+df = load_long_table()
 main, ranked, no_places, meta, priority_dist, inter_budget, inter_commercial = load_metrics()
+
+snapshot_date_short = meta["snapshot_date"].replace("-", ".")  # "2026-07-08" -> "2026.07.08"
 
 st.title("Приёмная кампания магистратуры ВШЭ — Москва + СПб")
 st.caption(
-    f"Срез метрик: {meta['snapshot_date']} (длинная таблица: {snapshot_from_long_table}) · "
-    f"Программ: {meta['n_programs']}"
+    f'<span style="font-size:18px;">Данные актуальны на момент {snapshot_date_short} · '
+    f'Программ: {meta["n_programs"]}</span>',
+    unsafe_allow_html=True,
 )
 
 # ------------------------------------------------------------- Базовая статистика
