@@ -18,6 +18,10 @@ test_spreadsheets/
 # приватного Google Drive (через сервисный аккаунт), репозиторий публичный.
 data/
 
+# Рабочая память для следующего чата с Claude Code — не документация проекта,
+# не для репозитория.
+docs/CONTEXT_FOR_FUTURE.md
+
 # Системное
 .DS_Store
 __pycache__/
