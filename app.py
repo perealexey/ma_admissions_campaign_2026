@@ -378,8 +378,15 @@ with tab_program:
             .rename(columns={"student_id": "Уникальный код поступающего", "reg_number": "Регистрационный номер"})
             .sort_values(["Приоритет (бюджет)", "Приоритет (платное)"], na_position="last")
         )
+        # Колонки остаются числовыми (не object/"—") — иначе интерактивная
+        # сортировка кликом по заголовку в самой таблице Streamlit становится
+        # лексикографической ("1, 10, 11, 2" вместо "1, 2, 10, 11"). Явно
+        # приводим к nullable Int64 (а не полагаемся на column_config format="%d") —
+        # после merge total_score стал float64 с NaN (обычный int не умеет
+        # хранить NaN), а format="%d" на float NaN рисует "None" текстом
+        # вместо пустой ячейки. Int64 + NaN Streamlit рисует пустым нативно.
         for col in ("Приоритет (бюджет)", "Приоритет (платное)", "Баллы"):
-            applicants_table[col] = applicants_table[col].astype(object).where(applicants_table[col].notna(), "—")
+            applicants_table[col] = applicants_table[col].astype("Int64")
         st.dataframe(
             applicants_table, use_container_width=True, hide_index=True,
             column_config={
@@ -501,10 +508,10 @@ with tab_compare:
                         x=alt.X("priority:O", title="Приоритет"),
                         y=alt.Y(f"{value_col}:Q", title="Заявителей"),
                     )
-                    .properties(width=160, height=200)
+                    .properties(width=340, height=400)
                     .facet(column=alt.Column("program_name:N", title=None, sort=selected_compare))
                 )
-                st.altair_chart(profile_chart)
+                st.altair_chart(profile_chart, use_container_width=True)
             else:
                 st.info(f"Нет заявок типа «{PLACE_TYPE_LABELS[profile_place_type]}» ни у одной из выбранных программ.")
 
