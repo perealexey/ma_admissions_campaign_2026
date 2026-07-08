@@ -352,6 +352,46 @@ with tab_program:
     else:
         st.info(f"У программы нет заявок типа «{PLACE_TYPE_LABELS[place_type_choice]}» — пересечения не определены.")
 
+    st.markdown("**Абитуриенты этой программы**")
+    # str(...): program_id в df (parquet) — строка, в prog_id (из CSV-метрик) —
+    # int64; без приведения сравнение всегда пустое (см. тот же баг в
+    # "Сравнить программы" — "Общие уникальные абитуриенты").
+    prog_students = df[df["program_id"] == str(prog_id)]
+    if len(prog_students):
+        id_lookup = prog_students.drop_duplicates("student_id")[["student_id", "reg_number"]]
+        budget_sub = prog_students[prog_students["place_type"] == "budget"][
+            ["student_id", "priority", "total_score"]
+        ].rename(columns={"priority": "Приоритет (бюджет)", "total_score": "budget_score"})
+        commercial_sub = prog_students[prog_students["place_type"] == "commercial"][
+            ["student_id", "priority", "total_score"]
+        ].rename(columns={"priority": "Приоритет (платное)", "total_score": "commercial_score"})
+        applicants_table = (
+            id_lookup.merge(budget_sub, on="student_id", how="left")
+            .merge(commercial_sub, on="student_id", how="left")
+        )
+        # Одна колонка "Баллы" — конкурсные баллы не бывают отдельно "за
+        # бюджет" и "за коммерцию", это один и тот же результат абитуриента;
+        # берём то из двух мест, что заполнено (обычно совпадают, если есть оба).
+        applicants_table["Баллы"] = applicants_table["budget_score"].combine_first(applicants_table["commercial_score"])
+        applicants_table = (
+            applicants_table.drop(columns=["budget_score", "commercial_score"])
+            .rename(columns={"student_id": "Уникальный код поступающего", "reg_number": "Регистрационный номер"})
+            .sort_values(["Приоритет (бюджет)", "Приоритет (платное)"], na_position="last")
+        )
+        for col in ("Приоритет (бюджет)", "Приоритет (платное)", "Баллы"):
+            applicants_table[col] = applicants_table[col].astype(object).where(applicants_table[col].notna(), "—")
+        st.dataframe(
+            applicants_table, use_container_width=True, hide_index=True,
+            column_config={
+                "Уникальный код поступающего": st.column_config.NumberColumn(width="small"),
+                "Регистрационный номер": st.column_config.NumberColumn(width="small"),
+            },
+        )
+        st.caption(f"Всего абитуриентов по этой программе: {len(applicants_table)}. "
+                   "Пусто в приоритете — не подавался этим типом места.")
+    else:
+        st.info("Нет заявок по этой программе.")
+
 # -------------------------------------------------------------- Сравнить программы
 with tab_compare:
     st.caption(
