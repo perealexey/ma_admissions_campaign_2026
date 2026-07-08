@@ -92,7 +92,31 @@ def place_type_radio(label: str, key: str) -> str:
                      horizontal=True, key=key)
 
 
+def check_password() -> bool:
+    """Простой общий пароль на весь дашборд — репозиторий публичный (учебное
+    упражнение с git), пароль здесь не про защиту данных как таковых, а про
+    то, чтобы дашборд не открывался случайным прохожим. Само значение пароля
+    не в коде и не в репозитории: st.secrets читает его из .streamlit/secrets.toml
+    локально (в .gitignore) или из Settings → Secrets на Streamlit Cloud."""
+    if st.session_state.get("authenticated"):
+        return True
+
+    def on_submit():
+        if st.session_state.get("password_input") == st.secrets.get("app_password"):
+            st.session_state["authenticated"] = True
+        else:
+            st.session_state["authenticated"] = False
+
+    st.text_input("Пароль", type="password", key="password_input", on_change=on_submit)
+    if st.session_state.get("authenticated") is False:
+        st.error("Неверный пароль.")
+    return False
+
+
 st.set_page_config(page_title="Приёмная кампания ВШЭ — магистратура", layout="wide")
+
+if not check_password():
+    st.stop()
 
 df, snapshot_from_long_table = load_long_table()
 main, ranked, no_places, meta, priority_dist, inter_budget, inter_commercial = load_metrics()

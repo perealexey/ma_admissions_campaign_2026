@@ -8,6 +8,10 @@ test_spreadsheets/
 # Локальные dev-инструменты (Claude Code preview), не часть проекта
 .claude/
 
+# Секреты (пароль дашборда) — локальная копия для тестов, на Streamlit Cloud
+# тот же секрет вносится отдельно через Settings → Secrets, тоже не в git.
+.streamlit/secrets.toml
+
 # Системное
 .DS_Store
 __pycache__/
