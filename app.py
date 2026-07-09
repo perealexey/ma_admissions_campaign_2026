@@ -168,6 +168,31 @@ def check_password() -> bool:
 
 st.set_page_config(page_title="Приёмная кампания ВШЭ — магистратура", layout="wide")
 
+# Крупные, заметные вкладки верхнего уровня ("По программе" / "Сравнить
+# программы" / "По абитуриенту") — стандартный размер Streamlit-вкладок
+# слишком незаметен на фоне остального интерфейса.
+st.markdown(
+    """
+    <style>
+    div[data-baseweb="tab-list"] {
+        gap: 8px;
+    }
+    div[data-baseweb="tab-list"] button[data-baseweb="tab"] {
+        height: 56px;
+        padding: 0 28px;
+    }
+    div[data-baseweb="tab-list"] button[data-baseweb="tab"] p {
+        font-size: 20px;
+        font-weight: 700;
+    }
+    div[data-baseweb="tab-highlight"] {
+        height: 4px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 if not check_password():
     st.stop()
 
