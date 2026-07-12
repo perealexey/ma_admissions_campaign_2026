@@ -202,6 +202,7 @@ main, ranked, no_places, meta, priority_dist, inter_budget, inter_commercial = l
 snapshot_date_short = meta["snapshot_date"].replace("-", ".")  # "2026-07-08" -> "2026.07.08"
 
 st.title("Приёмная кампания магистратуры ВШЭ — Москва + СПб")
+st.caption("Проект подготовлен Переясловым А.Д., ст. преподавателем, менеджером Института медиа")
 st.caption(
     f'<span style="font-size:18px;">Данные актуальны на момент {snapshot_date_short} · '
     f'Программ: {meta["n_programs"]}</span>',

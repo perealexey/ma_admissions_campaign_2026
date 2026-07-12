@@ -2,7 +2,7 @@
 (на случай если забыл(а) или запутался(ась))
 
 Всё выполняется из терминала, из папки проекта:
-cd "/Users/aleksejpereaslov/Documents/Work/institute_media/summer_campaign_26"
+cd "/Users/aleksejpereaslov/Documents/Work/institute_media/priyom/26_summer_campaign/ma_summer_26"
 
 ------------------------------------------------------------
 ГЛАВНОЕ ПРАВИЛО
