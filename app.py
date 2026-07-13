@@ -431,20 +431,26 @@ with tab_program:
         # бюджет" и "за коммерцию", это один и тот же результат абитуриента;
         # берём то из двух мест, что заполнено (обычно совпадают, если есть оба).
         applicants_table["Баллы"] = applicants_table["budget_score"].combine_first(applicants_table["commercial_score"])
-        applicants_table = (
-            applicants_table.drop(columns=["budget_score", "commercial_score"])
-            .rename(columns={"student_id": "Уникальный код поступающего", "reg_number": "Регистрационный номер"})
-            .sort_values(["Приоритет (бюджет)", "Приоритет (платное)"], na_position="last")
+        applicants_table = applicants_table.drop(columns=["budget_score", "commercial_score"]).rename(
+            columns={"student_id": "Уникальный код поступающего", "reg_number": "Регистрационный номер"}
         )
-        # Колонки остаются числовыми (не object/"—") — иначе интерактивная
-        # сортировка кликом по заголовку в самой таблице Streamlit становится
-        # лексикографической ("1, 10, 11, 2" вместо "1, 2, 10, 11"). Явно
-        # приводим к nullable Int64 (а не полагаемся на column_config format="%d") —
-        # после merge total_score стал float64 с NaN (обычный int не умеет
-        # хранить NaN), а format="%d" на float NaN рисует "None" текстом
-        # вместо пустой ячейки. Int64 + NaN Streamlit рисует пустым нативно.
+        # Приводим к Int64 сначала, чтобы sort_values ниже сортировал численно
+        # ("1, 2, 10, 11"), а не лексикографически ("1, 10, 11, 2").
         for col in ("Приоритет (бюджет)", "Приоритет (платное)", "Баллы"):
             applicants_table[col] = applicants_table[col].astype("Int64")
+        applicants_table = applicants_table.sort_values(
+            ["Приоритет (бюджет)", "Приоритет (платное)"], na_position="last"
+        )
+        # Порядок строк уже зафиксирован сортировкой выше по Int64. Для ПОКАЗА
+        # переводим эти же колонки в строку с "" вместо NA: проверено
+        # эмпирически (на синтетике и на этой же таблице вживую), что в этой
+        # версии Streamlit (1.50.0) числовая колонка с пропуском — Int64 ИЛИ
+        # float, с column_config или без — рисует пропуск буквально текстом
+        # "None", а не пустой ячейкой. Только строка с "" рендерится пустой
+        # корректно (тот же приём уже используется в pivot-таблице вкладки
+        # «Сравнить программы»).
+        for col in ("Приоритет (бюджет)", "Приоритет (платное)", "Баллы"):
+            applicants_table[col] = applicants_table[col].map(lambda x: "" if pd.isna(x) else str(int(x)))
         st.dataframe(
             applicants_table, use_container_width=True, hide_index=True,
             column_config={
