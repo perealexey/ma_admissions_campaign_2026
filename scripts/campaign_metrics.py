@@ -126,7 +126,7 @@ def compute_m5_m6(m1_m2_m3: pd.DataFrame, supply: pd.DataFrame) -> pd.DataFrame:
 
 
 def compute_m4(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
-    """M4: рейтинг желанности (только budget) со сжатием к общему среднему p0
+    """M4: рейтинг интереса (только budget) со сжатием к общему среднему p0
     (эмпирический Байес, метод моментов для оценки силы сжатия k).
     Разобрано построчно и подтверждено заказчиком — см. docs/METRICS.md."""
     budget = df[df["place_type"] == "budget"]
@@ -216,7 +216,7 @@ def main():
         on="program_id", how="left",
     ).rename(columns={"cnt_p1": "n_p1_budget"})
 
-    # (б) отдельная отсортированная витрина желанности — ТОЛЬКО программы
+    # (б) отдельная отсортированная витрина интереса — ТОЛЬКО программы
     #     с бюджетными местами; без мест = "не определено", не ноль и не хвост рейтинга.
     showcase = main_table[~main_table["no_budget_places"]].copy()
     showcase = showcase.sort_values("desirability", ascending=False)
@@ -232,7 +232,7 @@ def main():
               "n_p1_budget", "n_applications_budget", "desirability", "low_data"]].to_csv(
         showcase_path, index=False, encoding="utf-8-sig"
     )
-    print(f"(б) Витрина рейтинга желанности (только с бюджетными местами) -> {showcase_path} ({len(showcase)} строк)")
+    print(f"(б) Витрина рейтинга интереса (только с бюджетными местами) -> {showcase_path} ({len(showcase)} строк)")
 
     no_places_path = args.out_dir / "campaign_metrics_no_budget_places.csv"
     no_places_list.to_csv(no_places_path, index=False, encoding="utf-8-sig")

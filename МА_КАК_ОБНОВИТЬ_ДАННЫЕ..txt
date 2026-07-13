@@ -108,7 +108,7 @@ cd "/Users/aleksejpereaslov/Documents/Work/institute_media/priyom/26_summer_camp
 ГДЕ ЧТО ЛЕЖИТ / ЗА ЧТО ОТВЕЧАЕТ (если нужно копнуть глубже)
 ------------------------------------------------------------
 docs/PIPELINE.md    — как устроен весь процесс, шаг за шагом, подробно
-docs/METRICS.md     — что означают все метрики и формула индекса желанности
+docs/METRICS.md     — что означают все метрики и формула индекса интереса
 .streamlit/secrets.toml — пароль дашборда + ключ доступа к Google Drive
                           (этот файл НЕ в git, если потеряется — придётся
                           пересоздавать ключ в Google Cloud Console)
