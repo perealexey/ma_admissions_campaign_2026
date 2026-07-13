@@ -379,7 +379,14 @@ with tab_program:
     place_type_choice = place_type_radio("Тип места", key="inter_place_type")
     matrix = inter_budget if place_type_choice == "budget" else inter_commercial
     if selected_program in matrix.index:
-        row = matrix.loc[selected_program].drop(selected_program, errors="ignore")
+        row = matrix.loc[selected_program]
+        if isinstance(row, pd.DataFrame):
+            # Программы-«близнецы» (одно имя, два program_id — Москва/СПб,
+            # см. §match_supply_demand.py) дают дублирующийся индекс в матрице
+            # пересечений: matrix.loc[name] возвращает DataFrame вместо Series,
+            # и .sort_values() без by= падает с TypeError без объяснения причины.
+            row = row.iloc[0]
+        row = row.drop(selected_program, errors="ignore")
         row = row[row > 0].sort_values(ascending=False).head(10)
         if len(row):
             chart_data = row.rename("count").rename_axis("program").reset_index()
