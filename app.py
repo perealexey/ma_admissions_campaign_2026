@@ -555,47 +555,65 @@ with tab_compare:
             st.markdown("**Общие абитуриенты — их приоритеты по обеим программам**")
             common_ids = students_a & students_b
             if common_ids:
-                # Приоритет на программу = минимум (самый сильный) по всем спискам
-                # абитуриента: бюджет и платное нумеруются независимо, поэтому берём
-                # наименьший номер из всех, что человек присвоил этой программе.
-                prio_a = (
-                    df[(df["program_id"] == id_a) & (df["student_id"].isin(common_ids))]
-                    .groupby("student_id")["priority"].min()
-                )
-                prio_b = (
-                    df[(df["program_id"] == id_b) & (df["student_id"].isin(common_ids))]
-                    .groupby("student_id")["priority"].min()
-                )
-                reg_lookup = (
-                    df[df["student_id"].isin(common_ids)]
-                    .drop_duplicates("student_id").set_index("student_id")["reg_number"]
-                )
-                # Внутренние ключи prio_a/prio_b (а не финальные заголовки) — чтобы
-                # sort_values не сломался, если у обеих программ совпадёт имя (защита
-                # на будущее; сейчас одинаковые имена уже отсечены проверкой ambiguous).
-                common_table = pd.DataFrame(
-                    {"reg": reg_lookup, "prio_a": prio_a, "prio_b": prio_b}
-                ).sort_values(["prio_a", "prio_b"], na_position="last")
-                common_table["prio_a"] = common_table["prio_a"].astype("Int64")
-                common_table["prio_b"] = common_table["prio_b"].astype("Int64")
-                common_table.index.name = "Уникальный код поступающего"
+                sub = df[df["student_id"].isin(common_ids)]
+
+                # Приоритет разнесён по видам конкурса (бюджет/платное нумеруются
+                # НЕЗАВИСИМО, поэтому один и тот же номер в разных колонках — это
+                # разные очереди, а не одно и то же). Пусто = не подавался этим
+                # видом. .min() внутри вида — на случай нескольких строк (не бывает,
+                # но безопасно).
+                def prio_by_place(pid: str) -> pd.DataFrame:
+                    piv = (
+                        sub[sub["program_id"] == pid]
+                        .groupby(["student_id", "place_type"])["priority"].min()
+                        .unstack("place_type")
+                    )
+                    for pt in ("budget", "commercial"):
+                        if pt not in piv.columns:
+                            piv[pt] = pd.NA
+                    return piv[["budget", "commercial"]]
+
+                pa = prio_by_place(id_a)
+                pb = prio_by_place(id_b)
+                reg_lookup = sub.drop_duplicates("student_id").set_index("student_id")["reg_number"]
+
+                common_table = pd.DataFrame(index=sorted(common_ids))
+                common_table["reg"] = reg_lookup
+                common_table["a_bud"], common_table["a_com"] = pa["budget"], pa["commercial"]
+                common_table["b_bud"], common_table["b_com"] = pb["budget"], pb["commercial"]
+                # Сортировка — по сильнейшему приоритету на программу A, затем B
+                # (наиболее замотивированные наверху); вспомогательные колонки удаляем.
+                common_table["_sa"] = common_table[["a_bud", "a_com"]].min(axis=1)
+                common_table["_sb"] = common_table[["b_bud", "b_com"]].min(axis=1)
+                common_table = common_table.sort_values(["_sa", "_sb"], na_position="last").drop(columns=["_sa", "_sb"])
+                common_table.index.name = "code"
                 common_table = common_table.reset_index()
-                common_table.columns = [
-                    "Уникальный код поступающего", "Регистрационный номер",
-                    f"Приоритет — {program_a}", f"Приоритет — {program_b}",
-                ]
-                st.dataframe(
-                    common_table, use_container_width=True, hide_index=True,
-                    column_config={
-                        "Уникальный код поступающего": st.column_config.NumberColumn(width="small"),
-                        "Регистрационный номер": st.column_config.NumberColumn(width="small"),
-                    },
-                )
+                # code/reg — числовые id (никогда не пустые). Приоритеты: пустой
+                # вид конкурса → пустая ячейка. Int64 <NA> в таблице с
+                # MultiIndex-шапкой Streamlit рисует как "None", поэтому переводим
+                # приоритеты в строки с "" вместо NA (порядок строк уже
+                # зафиксирован сортировкой — строковый тип на него не влияет).
+                common_table["code"] = common_table["code"].astype("Int64")
+                common_table["reg"] = common_table["reg"].astype("Int64")
+                for c in ("a_bud", "a_com", "b_bud", "b_com"):
+                    common_table[c] = (
+                        common_table[c].astype("Int64")
+                        .map(lambda x: "" if pd.isna(x) else str(int(x)))
+                    )
+                # Двухуровневая шапка: программа → вид конкурса (pivot-стиль).
+                common_table.columns = pd.MultiIndex.from_tuples([
+                    ("Абитуриент", "Уникальный код поступающего"),
+                    ("Абитуриент", "Регистрационный номер"),
+                    (program_a, "Бюджет"), (program_a, "Платное"),
+                    (program_b, "Бюджет"), (program_b, "Платное"),
+                ])
+                st.dataframe(common_table, use_container_width=True, hide_index=True)
                 st.caption(
                     f"{len(common_table)} абитуриентов подали заявки на обе программы. "
-                    "«Приоритет» — самый сильный (наименьший номер), который абитуриент "
-                    "присвоил программе; бюджетные и платные приоритеты нумеруются "
-                    "независимо, поэтому берётся минимум по всем его спискам."
+                    "Приоритет показан отдельно по видам конкурса (бюджет / платное). "
+                    "Пусто — не подавался этим видом. Нумерация приоритетов у бюджета и "
+                    "платного независимая, поэтому одинаковый номер в разных колонках — "
+                    "это разные очереди."
                 )
             else:
                 st.info("У этих двух программ нет общих абитуриентов.")
