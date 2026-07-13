@@ -53,12 +53,23 @@ def normalize_header(h) -> str:
     return re.sub(r"\s+", " ", str(h)).strip().lower()
 
 
+# Программы-близнецы (одно официальное имя сразу на два кампуса) неотличимы
+# в дашборде — выпадающий список схлопывает их в одну строку, а матрица
+# пересечений даёт дублирующийся индекс и падает с TypeError (см. app.py).
+# Решение пользователя (2026-07-13): переименовать по program_id вручную,
+# один раз и навсегда — Москву не трогаем, только СПб-вариант получает
+# уточнение в имени.
+PROGRAM_NAME_OVERRIDES = {
+    "36704614836": "Дизайн СПб",  # «Дизайн», НИУ ВШЭ - Санкт-Петербург
+}
+
+
 def load_program_lookup(targets_csv: Path) -> dict[str, dict]:
     lookup: dict[str, dict] = {}
     with targets_csv.open(encoding="utf-8-sig") as f:
         for row in csv.DictReader(f):
             lookup[row["program_id"]] = {
-                "program_name": row["program_name"],
+                "program_name": PROGRAM_NAME_OVERRIDES.get(row["program_id"], row["program_name"]),
                 "campus": row["campus"],
             }
     return lookup
