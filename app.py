@@ -357,10 +357,12 @@ with tab_program:
 
     st.divider()
     program_names = sorted(filtered_main["program_name"].unique())
+    st.subheader("Программа — распределение приоритетов и пересечения")
     selected_program = st.selectbox(
         "Программа — распределение приоритетов и пересечения",
         with_priority_first(program_names),
         format_func=star_label,
+        label_visibility="collapsed",
     )
     prog_id = filtered_main.loc[filtered_main["program_name"] == selected_program, "program_id"].iloc[0]
 
